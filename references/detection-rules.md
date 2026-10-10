@@ -32,7 +32,7 @@ This reference document defines the complete detection rule catalog implemented 
 - **Detection Approach**: Regex search for standard 20-character AWS Access Key ID format: `\b(AKIA[0-9A-Z]{16})\b`.
 - **Illustrative Example (Synthetic)**:
   ```python
-  AWS_KEY = "AKIAEXAMPLEKEY123456"
+  AWS_KEY = "AKIA[16_CHAR_ALPHANUMERIC_KEY]"
   ```
 - **Expected False Positives**: Extremely rare; occasional collisions with hash digests or documentation strings that coincidentally begin with `AKIA`.
 - **Recommended Remediation**: Revoke the exposed IAM key in the AWS IAM Console immediately. Use AWS IAM Roles (e.g. AWS Instance Metadata / ECS task roles) or environment variables instead of committing keys.
@@ -47,7 +47,7 @@ This reference document defines the complete detection rule catalog implemented 
 - **Detection Approach**: Named regex matching assignments to `aws_secret_access_key`, `aws_secret_key`, or `aws_secret` containing a 40-character base64/alphanumeric literal value.
 - **Illustrative Example (Synthetic)**:
   ```ini
-  aws_secret_access_key = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+  aws_secret_access_key = "<YOUR_40_CHARACTER_AWS_SECRET_KEY>"
   ```
 - **Expected False Positives**: Configuration files using dummy placeholder strings or documentation examples. Filtered automatically when common placeholder terms (`example`, `test`, `dummy`) or template syntax (`${VAR}`) are used.
 - **Recommended Remediation**: Rotate the associated AWS key pair immediately. Migrate secrets to AWS Secrets Manager or Parameter Store.
@@ -62,7 +62,7 @@ This reference document defines the complete detection rule catalog implemented 
 - **Detection Approach**: Regex boundary matching standard GitHub Personal Access Token prefixes: `\b(ghp_[0-9a-zA-Z]{36})\b`.
 - **Illustrative Example (Synthetic)**:
   ```bash
-  export GITHUB_TOKEN="ghp_111122223333444455556666777788889999"
+  export GITHUB_TOKEN="ghp_<YOUR_36_CHARACTER_TOKEN_STRING>"
   ```
 - **Expected False Positives**: Near zero. GitHub's `ghp_` prefix is format-specific and checksum-validated by GitHub servers.
 - **Recommended Remediation**: Revoke the token via **GitHub Settings > Developer Settings > Personal Access Tokens**. Issue a new token with minimal necessary scopes.
@@ -77,7 +77,7 @@ This reference document defines the complete detection rule catalog implemented 
 - **Detection Approach**: Regex matching GitHub Fine-Grained Personal Access Tokens: `\b(github_pat_[0-9a-zA-Z_]{82})\b`.
 - **Illustrative Example (Synthetic)**:
   ```python
-  gh_token = "github_pat_11AAAA22BBBB33CCCC44DDDD55EEEE66FFFF77GGGG88HHHH99IIII00JJJJ11KKKK22LLLL33MMMM"
+  gh_token = "github_pat_<YOUR_82_CHARACTER_TOKEN_STRING>"
   ```
 - **Expected False Positives**: None identified.
 - **Recommended Remediation**: Revoke the fine-grained token in GitHub Developer Settings and check audit logs for unauthorized access.
@@ -92,7 +92,7 @@ This reference document defines the complete detection rule catalog implemented 
 - **Detection Approach**: Regex pattern matching scoped GitHub OAuth (`gho_`), User-to-Server (`ghu_`), Server-to-Server (`ghs_`), and Refresh (`ghr_`) tokens.
 - **Illustrative Example (Synthetic)**:
   ```javascript
-  const oauthToken = "gho_exampleTokenString1234567890abcdefghij";
+  const oauthToken = "gho_<YOUR_SCOPED_TOKEN_STRING>";
   ```
 - **Expected False Positives**: Extremely low due to vendor-specific prefixes.
 - **Recommended Remediation**: Revoke the app token in GitHub Apps management or OAuth App settings.
@@ -108,9 +108,9 @@ This reference document defines the complete detection rule catalog implemented 
   `-----BEGIN (?:RSA|DSA|EC|OPENSSH|PGP|ENCRYPTED)? ?PRIVATE KEY-----`.
 - **Illustrative Example (Synthetic)**:
   ```text
-  -----BEGIN RSA PRIVATE KEY-----
+  -----BEGIN [TYPE] PRIVATE KEY-----
   MIIEowIBAAKCAQEA0m...
-  -----END RSA PRIVATE KEY-----
+  -----END [TYPE] PRIVATE KEY-----
   ```
 - **Expected False Positives**: Intentional public documentation or test dummy keys committed in mock directories.
 - **Recommended Remediation**: Never commit private keys to Git. Revoke certificates associated with the compromised key and generate a fresh key pair.
@@ -125,7 +125,7 @@ This reference document defines the complete detection rule catalog implemented 
 - **Detection Approach**: Regex matching standard Slack token formats: `\b(xox[baprs]-[0-9a-zA-Z]{10,48})\b`.
 - **Illustrative Example (Synthetic)**:
   ```python
-  slack_bot_token = "xoxb-PLACEHOLDER_TOKEN_STRING"
+  slack_bot_token = "xoxb-<YOUR_SLACK_BOT_TOKEN>"
   ```
 - **Expected False Positives**: Low. Filtered automatically if standard test mocks are present.
 - **Recommended Remediation**: Revoke the token in the Slack API app dashboard (`api.slack.com/apps`).
@@ -140,7 +140,7 @@ This reference document defines the complete detection rule catalog implemented 
 - **Detection Approach**: Heuristic regex scanning variable assignments for sensitive identifiers (`password`, `api_key`, `secret`, `client_secret`, `auth_token`) assigned string literals of length >= 8 characters.
 - **Illustrative Example (Synthetic)**:
   ```python
-  DATABASE_PASSWORD = "SuperSecretPassword123!"
+  DATABASE_PASSWORD = "<YOUR_DATABASE_PASSWORD_HERE>"
   ```
 - **Expected False Positives**: Development mock strings, unit test fixtures, or configuration variable lookups. Built-in filters ignore environment variable calls (`process.env`, `os.environ`, `System.getenv`), templates (`${VAR}`), and obvious placeholders (`<PLACEHOLDER>`, `dummy`, `test`).
 - **Recommended Remediation**: Store secret in an untracked `.env` file (listed in `.gitignore`) and load via environment variables or a secret vault.
