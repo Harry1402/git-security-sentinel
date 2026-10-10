@@ -1,0 +1,54 @@
+{
+  "scanner": "git-security-sentinel",
+  "version": "1.0.0",
+  "status": "completed",
+  "scan_mode": "all",
+  "findings": [
+    {
+      "rule_id": "secret.github_pat_classic",
+      "category": "secrets",
+      "severity": "high",
+      "confidence": "high",
+      "file": "services/github_client.py",
+      "line": 14,
+      "message": "GitHub personal access token (classic) detected.",
+      "evidence": "ghp_************************99",
+      "recommendation": "Revoke this personal access token in GitHub Developer Settings and generate a new one."
+    },
+    {
+      "rule_id": "code.dangerous_eval",
+      "category": "risky_code",
+      "severity": "medium",
+      "confidence": "medium",
+      "file": "utils/calculator.py",
+      "line": 42,
+      "message": "Potentially unsafe dynamic code evaluation (eval/exec) detected.",
+      "evidence": "eval(user_query)",
+      "recommendation": "Avoid eval() or exec() with untrusted input; use structured parsing like json.loads() or ast.literal_eval()."
+    },
+    {
+      "rule_id": "config.hardcoded_localhost",
+      "category": "configuration",
+      "severity": "low",
+      "confidence": "low",
+      "file": "frontend/api.js",
+      "line": 8,
+      "message": "Hardcoded localhost or loopback endpoint detected.",
+      "evidence": "http://127.0.0.1:8000",
+      "recommendation": "Extract local host/port into configurable environment variables for production readiness."
+    }
+  ],
+  "license": {
+    "root_license_present": true,
+    "license_file": "LICENSE"
+  },
+  "summary": {
+    "total": 3,
+    "critical": 0,
+    "high": 1,
+    "medium": 1,
+    "low": 1,
+    "info": 0
+  },
+  "errors": []
+}
