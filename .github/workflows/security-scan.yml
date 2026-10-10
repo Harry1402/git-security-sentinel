@@ -1,0 +1,52 @@
+name: Security Scan & Test Suite
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test-and-scan:
+    name: Run Unit Tests & Diff Scanner
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Full history needed for merge-base branch diffs
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Run Unit & Integration Tests
+        run: |
+          python -m unittest discover -s tests -p "test_*.py" -v
+
+      - name: Run Git Security Sentinel on Pull Request Diff
+        if: github.event_name == 'pull_request'
+        run: |
+          python scripts/scan_diff.py \
+            --base origin/${{ github.base_ref }} \
+            --fail-on high \
+            --format text
+
+      - name: Run Git Security Sentinel on Recent Push Commits
+        if: github.event_name == 'push'
+        run: |
+          # If not an initial commit, scan HEAD against parent commit
+          if git rev-parse --verify HEAD~1 >/dev/null 2>&1; then
+            git diff --no-ext-diff --no-color HEAD~1..HEAD > push.diff
+            python scripts/scan_diff.py \
+              --diff-file push.diff \
+              --fail-on high \
+              --format text
+          else
+            echo "Initial commit detected; skipping branch diff check."
+          fi
