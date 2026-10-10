@@ -304,6 +304,18 @@ class TestCLIAndExitCodes(unittest.TestCase):
         ])
         self.assertEqual(code, 0)
 
+    def test_exclude_patterns_skips_files(self):
+        report_out = self.test_path / "excluded-report.json"
+        code = scan_diff.main([
+            "--diff-file", str(self.secret_diff),
+            "--exclude", "secret.py",
+            "--output", str(report_out),
+            "--repo-root", str(self.test_path),
+        ])
+        self.assertEqual(code, 0)
+        report_data = json.loads(report_out.read_text(encoding="utf-8"))
+        self.assertEqual(report_data["summary"]["total"], 0)
+
     def test_missing_diff_file_exit_code_two(self):
         code = scan_diff.main([
             "--diff-file", str(self.test_path / "nonexistent.diff"),

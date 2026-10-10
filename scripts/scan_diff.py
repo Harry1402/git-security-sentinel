@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 from dataclasses import asdict, dataclass, field
+import fnmatch
 import json
 import os
 from pathlib import Path
@@ -494,12 +495,35 @@ def check_root_license(repo_root: Path) -> LicenseStatus:
 # Core Scanner Logic
 # ============================================================================
 
-def scan_added_lines(lines: List[DiffHunkLine]) -> List[Finding]:
+def is_path_excluded(file_path: str, exclude_patterns: List[str]) -> bool:
+    """Check if file_path matches any of the given glob patterns."""
+    norm_path = file_path.replace("\\", "/")
+    for pattern in exclude_patterns:
+        norm_pat = pattern.replace("\\", "/").strip()
+        if not norm_pat:
+            continue
+        if fnmatch.fnmatch(norm_path, norm_pat):
+            return True
+        if fnmatch.fnmatch(norm_path, f"*/{norm_pat}") or fnmatch.fnmatch(norm_path, f"{norm_pat}/*"):
+            return True
+        if fnmatch.fnmatch(Path(norm_path).name, norm_pat):
+            return True
+    return False
+
+
+def scan_added_lines(
+    lines: List[DiffHunkLine],
+    exclude_patterns: Optional[List[str]] = None,
+) -> List[Finding]:
     """Execute all security rules against parsed added diff lines."""
     findings: List[Finding] = []
     seen_keys = set()
+    patterns = exclude_patterns or []
 
     for item in lines:
+        if patterns and is_path_excluded(item.file_path, patterns):
+            continue
+
         for rule in RULES:
             matches = list(rule.pattern.finditer(item.content))
             for match in matches:
@@ -675,6 +699,11 @@ def main(argv: Optional[List[str]] = None) -> int:
         help="Severity threshold causing exit code 1 (default: 'high').",
     )
     parser.add_argument(
+        "--exclude",
+        metavar="PATTERNS",
+        help="Comma-separated file glob patterns to exclude from scanning (e.g. 'tests/*,examples/*').",
+    )
+    parser.add_argument(
         "--repo-root",
         metavar="PATH",
         default=".",
@@ -685,6 +714,10 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     root_path = Path(args.repo_root).resolve()
     license_status = check_root_license(root_path)
+
+    exclude_patterns = [
+        p.strip() for p in args.exclude.split(",") if p.strip()
+    ] if args.exclude else []
 
     # Determine diff source mode
     if args.staged:
@@ -733,7 +766,7 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     # Parse and scan
     added_lines = parse_unified_diff(diff_text)
-    findings = scan_added_lines(added_lines)
+    findings = scan_added_lines(added_lines, exclude_patterns=exclude_patterns)
     summary = calculate_summary(findings)
 
     report = ScanReport(

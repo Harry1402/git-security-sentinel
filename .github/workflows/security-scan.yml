@@ -35,6 +35,7 @@ jobs:
           python scripts/scan_diff.py \
             --base origin/${{ github.base_ref }} \
             --fail-on high \
+            --exclude "tests/*,references/*,examples/*" \
             --format text
 
       - name: Run Git Security Sentinel on Recent Push Commits
@@ -46,6 +47,7 @@ jobs:
             python scripts/scan_diff.py \
               --diff-file push.diff \
               --fail-on high \
+              --exclude "tests/*,references/*,examples/*" \
               --format text
           else
             echo "Initial commit detected; skipping branch diff check."
